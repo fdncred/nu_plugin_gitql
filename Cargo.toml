@@ -1,0 +1,24 @@
+[package]
+name = "nu_plugin_gitql"
+version = "0.1.0"
+authors = ["Darren Schroeder <343840+fdncred@users.noreply.github.com>"]
+edition = "2021"
+description = "a nushell plugin called gitql"
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gitql-ast = "0.24.0"
+gitql-cli = "0.27.0"
+gitql-core = "0.4.0"
+gitql-engine = "0.27.0"
+gitql-parser = "0.26.0"
+gitql-std = "0.4.1"
+gix = "0.66.0"
+# for local development, you can use a path dependency
+nu-plugin = { path = "../nushell/crates/nu-plugin" }
+nu-protocol = { path = "../nushell/crates/nu-protocol", features = ["plugin"] }
+
+[dev-dependencies]
+nu-plugin-test-support = { path = "../nushell/crates/nu-plugin-test-support" }
