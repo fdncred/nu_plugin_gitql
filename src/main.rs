@@ -3,7 +3,7 @@ use crate::gitql_schema::tables_fields_types;
 use nu_path::expand_path_with;
 use nu_plugin::{serve_plugin, MsgPackSerializer, Plugin, PluginCommand};
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
-use nu_protocol::{Category, Example, LabeledError, Signature, SyntaxShape, Value};
+use nu_protocol::{Category, Example, LabeledError, Signature, SyntaxShape, Type, Value};
 // use atty::Stream;
 use gitql_cli::arguments;
 use gitql_cli::arguments::Arguments;
@@ -56,12 +56,13 @@ impl SimplePluginCommand for Gitql {
 
     fn signature(&self) -> Signature {
         Signature::build(PluginCommand::name(self))
+            // .input_output_types(vec![(Type::Nothing, Type::String)])
             // .required(
             //     "name",
             //     SyntaxShape::String,
             //     "(FIXME) A demo parameter - your name",
             // )
-            .rest("query", SyntaxShape::String, "gitql query string")
+            .required("query", SyntaxShape::String, "gitql query string")
             // .switch("shout", "(FIXME) Yell it instead", None)
             .category(Category::Experimental)
     }
@@ -94,54 +95,21 @@ impl SimplePluginCommand for Gitql {
     ) -> Result<Value, LabeledError> {
         let curdir = engine.get_current_dir()?;
         // let path_to_use = expand_path_with(".", curdir, true);
+        let query_string: String = call.req(0)?;
 
-        // let name: String = call.req(0)?;
-        // let mut greeting = format!("Hello, {name}. How are you today?");
-        // if call.has_flag("shout")? {
-        //     greeting = greeting.to_uppercase();
-        // }
-        // Ok(Value::string(greeting, call.head))
-
-        let args: Vec<String> = call.rest(0)?;
-        let mut my_args = vec![];
-        // my_args.push("--repos '/Users/fdncred/src/nu_plugin_gitql'".to_string());
-        my_args.push(format!("--repos '{}'", curdir));
-        // my_args.push(format!("-q '{}'", args[0]));
-        my_args.push("-q".to_string());
-        my_args.push(args[0].to_string());
-        // my_args.push(format!("-r '{}'", curdir));
-
-        // my_args.push("-r".to_string());
-        // my_args.push(curdir.to_string());
-        // } else {
-        //     args
-        // };
-
-        eprintln!(
-            "args: {:#?}\narg_count: {}\nmy_args: {:#?}\nmy_args_count: {}",
-            args,
-            args.len(),
-            my_args,
-            my_args.len()
-        );
-
-        let arguments = arguments::parse_arguments(&my_args);
-        eprintln!("parsed arguments from gitql-cli: {:#?}", arguments);
-
-        let (query, mut query_arguments) = if let Command::QueryMode(q, qa) = arguments {
-            eprintln!("query: {:#?}\nquery_arguments: {:#?}", q, qa);
-            (q, qa)
-        } else {
-            return Err(LabeledError::new("Not in query mode"));
+        let query_arguments = Arguments {
+            repos: vec![curdir.to_string()],
+            output_format: OutputFormat::Render,
+            pagination: false,
+            page_size: 10,
+            analysis: false,
         };
 
-        query_arguments.repos.clear();
-        query_arguments.repos.push(curdir.to_string());
         let mut reporter = diagnostic_reporter::DiagnosticReporter::default();
         let git_repos_result = validate_git_repositories(&query_arguments.repos);
         if git_repos_result.is_err() {
             reporter.report_diagnostic(
-                &query,
+                &query_string,
                 Diagnostic::error(git_repos_result.err().unwrap().as_str()),
             );
             return Err(LabeledError::new("Invalid repositories paths"));
@@ -163,7 +131,13 @@ impl SimplePluginCommand for Gitql {
         env.with_standard_functions(std_signatures, std_functions);
         env.with_aggregation_functions(aggregation_signatures, aggregation_functions);
 
-        execute_gitql_query(query, &query_arguments, &repos, &mut env, &mut reporter);
+        execute_gitql_query(
+            query_string,
+            &query_arguments,
+            &repos,
+            &mut env,
+            &mut reporter,
+        );
 
         Ok(Value::nothing(call.head))
     }
