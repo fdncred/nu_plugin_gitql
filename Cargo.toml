@@ -16,9 +16,11 @@ gitql-engine = "0.27.0"
 gitql-parser = "0.26.0"
 gitql-std = "0.4.1"
 gix = "0.66.0"
+
 # for local development, you can use a path dependency
 nu-plugin = { path = "../nushell/crates/nu-plugin" }
 nu-protocol = { path = "../nushell/crates/nu-protocol", features = ["plugin"] }
+nu-path =  { path = "../nushell/crates/nu-path" }
 
 [dev-dependencies]
 nu-plugin-test-support = { path = "../nushell/crates/nu-plugin-test-support" }

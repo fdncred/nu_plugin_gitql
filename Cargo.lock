@@ -2122,6 +2122,7 @@ dependencies = [
  "gitql-parser",
  "gitql-std",
  "gix",
+ "nu-path",
  "nu-plugin",
  "nu-plugin-test-support",
  "nu-protocol",
