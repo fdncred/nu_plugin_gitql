@@ -1,13 +1,13 @@
 use crate::gitql_schema::tables_fields_names;
 use crate::gitql_schema::tables_fields_types;
-use nu_path::expand_path_with;
+// use nu_path::expand_path_with;
 use nu_plugin::{serve_plugin, MsgPackSerializer, Plugin, PluginCommand};
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
-use nu_protocol::{Category, Example, LabeledError, Signature, SyntaxShape, Type, Value};
+use nu_protocol::{Category, Example, LabeledError, Signature, SyntaxShape, Value};
 // use atty::Stream;
-use gitql_cli::arguments;
+// use gitql_cli::arguments;
 use gitql_cli::arguments::Arguments;
-use gitql_cli::arguments::Command;
+// use gitql_cli::arguments::Command;
 use gitql_cli::arguments::OutputFormat;
 use gitql_cli::diagnostic_reporter;
 use gitql_cli::diagnostic_reporter::DiagnosticReporter;
@@ -27,6 +27,7 @@ use gitql_std::aggregation::aggregation_functions;
 mod gitql_data_provider;
 mod gitql_functions;
 mod gitql_schema;
+// mod nushell_render;
 
 pub struct GitqlPlugin;
 
