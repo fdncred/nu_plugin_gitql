@@ -57,13 +57,7 @@ impl SimplePluginCommand for Gitql {
     fn signature(&self) -> Signature {
         Signature::build(PluginCommand::name(self))
             // .input_output_types(vec![(Type::Nothing, Type::String)])
-            // .required(
-            //     "name",
-            //     SyntaxShape::String,
-            //     "(FIXME) A demo parameter - your name",
-            // )
             .required("query", SyntaxShape::String, "gitql query string")
-            // .switch("shout", "(FIXME) Yell it instead", None)
             .category(Category::Experimental)
     }
 
@@ -74,14 +68,24 @@ impl SimplePluginCommand for Gitql {
     fn examples(&self) -> Vec<Example> {
         vec![
             Example {
-                example: "gitql Ellie",
-                description: "Say hello to Ellie",
-                result: Some(Value::test_string("Hello, Ellie. How are you today?")),
+                example: "gitql 'show tables'",
+                description: "Show the tables available to be queried",
+                result: None,
             },
             Example {
-                example: "gitql --shout Ellie",
-                description: "Shout hello to Ellie",
-                result: Some(Value::test_string("HELLO, ELLIE. HOW ARE YOU TODAY?")),
+                example: "gitql 'select * from refs limit 10'",
+                description: "Show the first 10 refs",
+                result: None,
+            },
+            Example {
+                example: "gitql 'desribe commits'",
+                description: "Show the data types of the fields in the commits table",
+                result: None,
+            },
+            Example {
+                example: r#"gitql 'SELECT title, datetime FROM commits WHERE commit_conventional(title) = "feat"'"#,
+                description: "Show title and datetime of commits with conventional title 'feat' using the only function commit_convetional()",
+                result: None,
             },
         ]
     }
