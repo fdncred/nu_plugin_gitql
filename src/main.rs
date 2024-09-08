@@ -1,33 +1,28 @@
-use crate::gitql_schema::tables_fields_names;
-use crate::gitql_schema::tables_fields_types;
+use crate::gitql_schema::{tables_fields_names, tables_fields_types};
+// use crate::nushell_render::render_objects;
 // use nu_path::expand_path_with;
 use nu_plugin::{serve_plugin, MsgPackSerializer, Plugin, PluginCommand};
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{Category, Example, LabeledError, Signature, SyntaxShape, Value};
 // use atty::Stream;
-// use gitql_cli::arguments;
-use gitql_cli::arguments::Arguments;
-// use gitql_cli::arguments::Command;
-use gitql_cli::arguments::OutputFormat;
-use gitql_cli::diagnostic_reporter;
-use gitql_cli::diagnostic_reporter::DiagnosticReporter;
-use gitql_cli::render;
-use gitql_core::environment::Environment;
-use gitql_core::schema::Schema;
+use gitql_cli::{
+    // arguments,
+    arguments::{Arguments, OutputFormat},
+    diagnostic_reporter,
+    diagnostic_reporter::DiagnosticReporter,
+    // render,
+};
+use gitql_core::{environment::Environment, schema::Schema};
 use gitql_data_provider::GitDataProvider;
-use gitql_engine::data_provider::DataProvider;
-use gitql_engine::engine;
-use gitql_engine::engine::EvaluationResult::SelectedGroups;
+use gitql_engine::{data_provider::DataProvider, engine, engine::EvaluationResult::SelectedGroups};
 use gitql_parser::diagnostic::Diagnostic;
-use gitql_parser::parser;
-use gitql_parser::tokenizer;
-use gitql_std::aggregation::aggregation_function_signatures;
-use gitql_std::aggregation::aggregation_functions;
+use gitql_parser::{parser, tokenizer};
+use gitql_std::aggregation::{aggregation_function_signatures, aggregation_functions};
 
 mod gitql_data_provider;
 mod gitql_functions;
 mod gitql_schema;
-// mod nushell_render;
+mod nushell_render;
 
 pub struct GitqlPlugin;
 
@@ -63,7 +58,7 @@ impl SimplePluginCommand for Gitql {
     }
 
     fn description(&self) -> &str {
-        "(FIXME) help text for gitql"
+        "Use gitql to query git repositories"
     }
 
     fn examples(&self) -> Vec<Example> {
@@ -136,15 +131,15 @@ impl SimplePluginCommand for Gitql {
         env.with_standard_functions(std_signatures, std_functions);
         env.with_aggregation_functions(aggregation_signatures, aggregation_functions);
 
-        execute_gitql_query(
+        Ok(execute_gitql_query(
             query_string,
             &query_arguments,
             &repos,
             &mut env,
             &mut reporter,
-        );
+        ))
 
-        Ok(Value::nothing(call.head))
+        // Ok(Value::nothing(call.head))
     }
 }
 
@@ -169,25 +164,28 @@ fn execute_gitql_query(
     repos: &[gix::Repository],
     env: &mut Environment,
     reporter: &mut DiagnosticReporter,
-) {
+) -> Value {
     let front_start = std::time::Instant::now();
     let tokenizer_result = tokenizer::tokenize(query.clone());
+    // eprintln!("1");
     if tokenizer_result.is_err() {
         let diagnostic = tokenizer_result.err().unwrap();
         reporter.report_diagnostic(&query, *diagnostic);
-        return;
+        return Value::test_nothing();
     }
 
+    // eprintln!("2");
     let tokens = tokenizer_result.ok().unwrap();
     if tokens.is_empty() {
-        return;
+        return Value::test_nothing();
     }
 
+    // eprintln!("3");
     let parser_result = parser::parse_gql(tokens, env);
     if parser_result.is_err() {
         let diagnostic = parser_result.err().unwrap();
         reporter.report_diagnostic(&query, *diagnostic);
-        return;
+        return Value::test_nothing();
     }
 
     let query_node = parser_result.ok().unwrap();
@@ -197,50 +195,76 @@ fn execute_gitql_query(
     let provider: Box<dyn DataProvider> = Box::new(GitDataProvider::new(repos.to_vec()));
     let evaluation_result = engine::evaluate(env, &provider, query_node);
 
+    // eprintln!("4");
+
     // Report Runtime exceptions if they exists
     if evaluation_result.is_err() {
         reporter.report_diagnostic(
             &query,
             Diagnostic::exception(&evaluation_result.err().unwrap()),
         );
-        return;
+        return Value::test_nothing();
     }
+
+    // eprintln!("5");
 
     // Render the result only if they are selected groups not any other statement
     let engine_result = evaluation_result.ok().unwrap();
-    if let SelectedGroups(mut groups, hidden_selection) = engine_result {
+    let output: Value = if let SelectedGroups(mut groups, hidden_selection) = engine_result {
+        // eprintln!("6");
+
         match arguments.output_format {
             OutputFormat::Render => {
-                render::render_objects(
+                // render::render_objects(
+                //     &mut groups,
+                //     &hidden_selection,
+                //     arguments.pagination,
+                //     arguments.page_size,
+                // );
+                // eprintln!("6.1");
+
+                nushell_render::render_objects(
                     &mut groups,
                     &hidden_selection,
                     arguments.pagination,
                     arguments.page_size,
-                );
+                )
             }
             OutputFormat::JSON => {
                 if let Ok(json) = groups.as_json() {
-                    println!("{}", json);
+                    // println!("{}", json);
+                    Value::test_string(json)
+                } else {
+                    Value::test_nothing()
                 }
             }
             OutputFormat::CSV => {
                 if let Ok(csv) = groups.as_csv() {
-                    println!("{}", csv);
+                    // println!("{}", csv);
+                    Value::test_string(csv)
+                } else {
+                    Value::test_nothing()
                 }
             }
         }
-    }
+    } else {
+        // eprintln!("7");
+
+        Value::test_nothing()
+    };
 
     let engine_duration = engine_start.elapsed();
 
     if arguments.analysis {
-        println!("\n");
-        println!("Analysis:");
-        println!("Frontend : {:?}", front_duration);
-        println!("Engine   : {:?}", engine_duration);
-        println!("Total    : {:?}", (front_duration + engine_duration));
-        println!("\n");
+        eprintln!("\n");
+        eprintln!("Analysis:");
+        eprintln!("Frontend : {:?}", front_duration);
+        eprintln!("Engine   : {:?}", engine_duration);
+        eprintln!("Total    : {:?}", (front_duration + engine_duration));
+        eprintln!("\n");
     }
+
+    output
 }
 
 fn validate_git_repositories(repositories: &Vec<String>) -> Result<Vec<gix::Repository>, String> {
