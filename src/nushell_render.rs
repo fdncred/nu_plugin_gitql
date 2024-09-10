@@ -16,10 +16,17 @@ pub fn render_objects(
     pagination: bool,
     page_size: usize,
 ) -> Value {
+    // eprintln!(
+    //     "pagi: {pagination:#?} - pg: {page_size:#?} - gp_len: {}",
+    //     groups.len()
+    // );
     if groups.len() > 1 {
         groups.flat()
     }
     // eprintln!("a");
+
+    // eprintln!("CSV: {:#?}\n", groups.as_csv());
+    // eprintln!("JSON: {:#?}\n", groups.as_json());
 
     if groups.is_empty() || groups.groups[0].is_empty() {
         // eprintln!("a.1");
@@ -29,6 +36,7 @@ pub fn render_objects(
 
     let gql_group = groups.groups.first().unwrap();
     let gql_group_len = gql_group.len();
+    // eprintln!("{gql_group_len:#?}");
     // eprintln!("b");
 
     // Setup table headers
@@ -41,21 +49,21 @@ pub fn render_objects(
     // eprintln!("c");
 
     // Print all data without pagination
-    if !pagination || page_size >= gql_group_len {
-        // eprintln!("d");
+    // if !pagination || page_size >= gql_group_len {
+    // eprintln!("d");
 
-        print_group_as_table(
-            &groups.titles,
-            table_headers,
-            &gql_group.rows,
-            hidden_selections.len(),
-        )
-        // return;
-    } else {
-        // eprintln!("e");
+    print_group_as_table(
+        &groups.titles,
+        table_headers,
+        &gql_group.rows,
+        hidden_selections.len(),
+    )
+    // return;
+    // } else {
+    //     // eprintln!("e");
 
-        return Value::test_nothing();
-    }
+    //     return Value::test_nothing();
+    // }
 
     // Setup the pagination mode
     // let number_of_pages = (gql_group_len as f64 / page_size as f64).ceil() as usize;
@@ -94,7 +102,7 @@ fn print_group_as_table(
     // eprintln!("{titles:#?}");
 
     // let mut table = comfy_table::Table::new();
-    // let mut table = vec![];
+    let mut table = vec![];
     // let mut table_of_values = vec![];
 
     // // Setup table style
@@ -104,21 +112,24 @@ fn print_group_as_table(
 
     // table.set_header(table_headers);
 
-    // let titles_len = titles.len();
+    let titles_len = titles.len();
     let mut table_row_val: Vec<Value> = vec![];
     // Add rows to the table
     for row in rows {
         // let mut table_row: Vec<comfy_table::Cell> = vec![];
-        // let mut table_row: Vec<String> = vec![];
+        let mut table_row: Vec<String> = vec![];
         // let mut table_row_val: Vec<Value> = vec![];
-        // for index in 0..titles_len {
-        //     let value = row.values.get(index + hidden_selection_count).unwrap();
-        //     // table_row.push(comfy_table::Cell::new(value.to_string()));
-        //     table_row.push(value.to_string());
-        // }
+        for index in 0..titles_len {
+            let value = row.values.get(index + hidden_selection_count).unwrap();
+            // table_row.push(comfy_table::Cell::new(value.to_string()));
+            table_row.push(value.to_string());
+        }
 
         let mut rec = Record::new();
-        for (column_name, column_value) in titles.iter().zip(row.values.iter()) {
+        for index in 0..titles_len {
+            let column_name = &titles[index];
+            let column_value = row.values.get(index + hidden_selection_count).unwrap();
+            // eprintln!("{column_name:#?} - {:#?}", column_value.as_text());
             match column_value {
                 gitql_core::value::Value::Integer(i) => {
                     rec.insert(column_name, Value::test_int(*i));
@@ -232,22 +243,8 @@ fn print_group_as_table(
         }
         table_row_val.push(Value::test_record(rec));
 
-        // let rec = table_headers
-        //     .iter()
-        //     .zip(table_row.iter())
-        //     .map(|(a, b)| (a.to_owned(), b.to_owned()))
-        //     .collect::<Vec<_>>();
-        // eprintln!("{rec:#?}");
-        // rec.iter().for_each(|(k, v)| {
-        //     let key = *k;
-        //     let val = v;
-        //     table_row_val.push(Value::test_record(record!(
-        //         key => Value::test_string(val)
-        //     )));
-        // });
-
         // table.add_row(table_row);
-        // table.push(table_row);
+        table.push(table_row);
         // table_of_values.push(Value::test_list(table_row_val))
     }
 

@@ -53,6 +53,10 @@ impl SimplePluginCommand for Gitql {
     fn signature(&self) -> Signature {
         Signature::build(PluginCommand::name(self))
             // .input_output_types(vec![(Type::Nothing, Type::String)])
+            // --json flag
+            // --csv flag
+            // --debug/analysis flag
+            // --repo folder
             .required("query", SyntaxShape::String, "gitql query string")
             .category(Category::Experimental)
     }
@@ -160,7 +164,7 @@ fn main() {
 
 fn execute_gitql_query(
     query: String,
-    arguments: &Arguments,
+    query_arguments: &Arguments,
     repos: &[gix::Repository],
     env: &mut Environment,
     reporter: &mut DiagnosticReporter,
@@ -171,13 +175,13 @@ fn execute_gitql_query(
     if tokenizer_result.is_err() {
         let diagnostic = tokenizer_result.err().unwrap();
         reporter.report_diagnostic(&query, *diagnostic);
-        return Value::test_nothing();
+        return Value::test_string("tokenizer_result error".to_string());
     }
 
     // eprintln!("2");
     let tokens = tokenizer_result.ok().unwrap();
     if tokens.is_empty() {
-        return Value::test_nothing();
+        return Value::test_string("No tokens to parse".to_string());
     }
 
     // eprintln!("3");
@@ -185,7 +189,7 @@ fn execute_gitql_query(
     if parser_result.is_err() {
         let diagnostic = parser_result.err().unwrap();
         reporter.report_diagnostic(&query, *diagnostic);
-        return Value::test_nothing();
+        return Value::test_string("parser_result error".to_string());
     }
 
     let query_node = parser_result.ok().unwrap();
@@ -203,7 +207,7 @@ fn execute_gitql_query(
             &query,
             Diagnostic::exception(&evaluation_result.err().unwrap()),
         );
-        return Value::test_nothing();
+        return Value::test_string("evaluation_result error".to_string());
     }
 
     // eprintln!("5");
@@ -212,8 +216,9 @@ fn execute_gitql_query(
     let engine_result = evaluation_result.ok().unwrap();
     let output: Value = if let SelectedGroups(mut groups, hidden_selection) = engine_result {
         // eprintln!("6");
+        // eprintln!("{:#?} -> {:#?}", groups.titles, hidden_selection);
 
-        match arguments.output_format {
+        match query_arguments.output_format {
             OutputFormat::Render => {
                 // render::render_objects(
                 //     &mut groups,
@@ -226,36 +231,38 @@ fn execute_gitql_query(
                 nushell_render::render_objects(
                     &mut groups,
                     &hidden_selection,
-                    arguments.pagination,
-                    arguments.page_size,
+                    query_arguments.pagination,
+                    query_arguments.page_size,
                 )
             }
             OutputFormat::JSON => {
+                // eprintln!("6.2");
                 if let Ok(json) = groups.as_json() {
-                    // println!("{}", json);
                     Value::test_string(json)
                 } else {
-                    Value::test_nothing()
+                    Value::test_string("No JSON data to show".to_string())
                 }
             }
             OutputFormat::CSV => {
+                // eprintln!("6.3");
                 if let Ok(csv) = groups.as_csv() {
-                    // println!("{}", csv);
+                    // eprintln!("6.3a");
                     Value::test_string(csv)
                 } else {
-                    Value::test_nothing()
+                    // eprintln!("6.3b");
+                    Value::test_string("No CSV data to show".to_string())
                 }
             }
         }
     } else {
         // eprintln!("7");
 
-        Value::test_nothing()
+        Value::test_string("Not a SelectedGroups result".to_string())
     };
 
     let engine_duration = engine_start.elapsed();
 
-    if arguments.analysis {
+    if query_arguments.analysis {
         eprintln!("\n");
         eprintln!("Analysis:");
         eprintln!("Frontend : {:?}", front_duration);
