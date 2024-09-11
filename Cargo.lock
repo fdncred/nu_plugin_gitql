@@ -634,8 +634,7 @@ dependencies = [
 [[package]]
 name = "gitql-ast"
 version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79df7eb65d2841ca87e0aae52c708cabebd7d6c4321f73dd99d0202e798561fc"
+source = "git+https://github.com/AmrDeveloper/GQL/?branch=master#5de6efc6d872a1f4e1b2d107bac7ad56fa8bf981"
 dependencies = [
  "gitql-core",
 ]
@@ -643,8 +642,7 @@ dependencies = [
 [[package]]
 name = "gitql-cli"
 version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ceedd8caa68f16e9ec20602ee7c651985275cbcd0ed0dc6858578659cdf369b"
+source = "git+https://github.com/AmrDeveloper/GQL/?branch=master#5de6efc6d872a1f4e1b2d107bac7ad56fa8bf981"
 dependencies = [
  "comfy-table",
  "gitql-ast",
@@ -656,8 +654,7 @@ dependencies = [
 [[package]]
 name = "gitql-core"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f0df57f280f8ae712f994ac860b1f90342b98994b666175319b64b54fe61514"
+source = "git+https://github.com/AmrDeveloper/GQL/?branch=master#5de6efc6d872a1f4e1b2d107bac7ad56fa8bf981"
 dependencies = [
  "chrono",
  "csv",
@@ -667,8 +664,7 @@ dependencies = [
 [[package]]
 name = "gitql-engine"
 version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91d94c19ca4c80b5a1ce3c487ca5024afe137af021b095a1d44a976f461119ef"
+source = "git+https://github.com/AmrDeveloper/GQL/?branch=master#5de6efc6d872a1f4e1b2d107bac7ad56fa8bf981"
 dependencies = [
  "chrono",
  "gitql-ast",
@@ -679,8 +675,7 @@ dependencies = [
 [[package]]
 name = "gitql-parser"
 version = "0.26.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beef5e5ef5d3efc7233557456d53ba0b68a14cc69909635fefb0fd55cd73fb2b"
+source = "git+https://github.com/AmrDeveloper/GQL/?branch=master#5de6efc6d872a1f4e1b2d107bac7ad56fa8bf981"
 dependencies = [
  "gitql-ast",
  "gitql-core",
@@ -689,8 +684,7 @@ dependencies = [
 [[package]]
 name = "gitql-std"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "881e778bffea733f7c57760ed9e53959e2a630806eb019631ff0ed6404d5baa8"
+source = "git+https://github.com/AmrDeveloper/GQL/?branch=master#5de6efc6d872a1f4e1b2d107bac7ad56fa8bf981"
 dependencies = [
  "chrono",
  "gitql-core",
@@ -2192,9 +2186,9 @@ dependencies = [
 
 [[package]]
 name = "owo-colors"
-version = "4.0.0"
+version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "caff54706df99d2a78a5a4e3455ff45448d81ef1bb63c22cd14052ca0e993a3f"
+checksum = "fb37767f6569cd834a413442455e0f066d0d522de8630436e2a1761d9726ba56"
 
 [[package]]
 name = "parking_lot"
@@ -2438,9 +2432,9 @@ checksum = "d3edd4d5d42c92f0a659926464d4cce56b562761267ecf0f469d85b7de384175"
 
 [[package]]
 name = "redox_syscall"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a908a6e00f1fdd0dfd9c0eb08ce85126f6d8bbda50017e74bc4a4b7d4a926a4"
+checksum = "0884ad60e090bf1345b93da0a5de8923c93884cd03f40dfcfddd3b4bee661853"
 dependencies = [
  "bitflags",
 ]
@@ -2569,9 +2563,9 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustix"
-version = "0.38.36"
+version = "0.38.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f55e80d50763938498dd5ebb18647174e0c76dc38c5505294bb224624f30f36"
+checksum = "8acb788b847c24f28525660c4d7758620a7210875711f79e7f663cc152726811"
 dependencies = [
  "bitflags",
  "errno",
@@ -2659,9 +2653,9 @@ checksum = "bbfa15b3dddfee50a0fff136974b3e1bde555604ba463834a7eb7deb6417705d"
 
 [[package]]
 name = "shadow-rs"
-version = "0.33.0"
+version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a3978e7641f86a78c2f619f9b13bdffb4e43a1d5119f39eb03d1bc5ac61daaf"
+checksum = "69fe0bac8a8752586a618a1c80d01d8ca5d40fce4f6077fbc851e48dcbdb90df"
 dependencies = [
  "const_format",
  "is_debug",
@@ -3032,9 +3026,9 @@ checksum = "7eec5d1121208364f6793f7d2e222bf75a915c19557537745b195b253dd64217"
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.12"
+version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+checksum = "e91b56cd4cadaeb79bbf1a5645f6b4f8dc5bde8834ad5894a8db35fda9efa1fe"
 
 [[package]]
 name = "unicode-linebreak"
