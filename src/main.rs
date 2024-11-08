@@ -1,4 +1,6 @@
 use crate::gitql_schema::{tables_fields_names, tables_fields_types};
+// use gitql_cli::printer::csv_printer::CSVPrinter;
+// use gitql_cli::printer::json_printer::JSONPrinter;
 // use crate::nushell_render::render_objects;
 // use nu_path::expand_path_with;
 use nu_plugin::{serve_plugin, MsgPackSerializer, Plugin, PluginCommand};
@@ -107,6 +109,7 @@ impl SimplePluginCommand for Gitql {
             pagination: false,
             page_size: 10,
             analysis: false,
+            enable_line_editor: false,
         };
 
         let mut reporter = diagnostic_reporter::DiagnosticReporter::default();
@@ -132,8 +135,8 @@ impl SimplePluginCommand for Gitql {
         let aggregation_functions = aggregation_functions();
 
         let mut env = Environment::new(schema);
-        env.with_standard_functions(std_signatures, std_functions);
-        env.with_aggregation_functions(aggregation_signatures, aggregation_functions);
+        env.with_standard_functions(&std_signatures, std_functions);
+        env.with_aggregation_functions(&aggregation_signatures, aggregation_functions);
 
         Ok(execute_gitql_query(
             query_string,
@@ -214,9 +217,10 @@ fn execute_gitql_query(
 
     // Render the result only if they are selected groups not any other statement
     let engine_result = evaluation_result.ok().unwrap();
-    let output: Value = if let SelectedGroups(mut groups, hidden_selection) = engine_result {
+    let output: Value = if let SelectedGroups(mut groups) = engine_result {
         // eprintln!("6");
         // eprintln!("{:#?} -> {:#?}", groups.titles, hidden_selection);
+        // let hidden_selection: &[String] = &[];
 
         match query_arguments.output_format {
             OutputFormat::Render => {
@@ -230,26 +234,72 @@ fn execute_gitql_query(
 
                 nushell_render::render_objects(
                     &mut groups,
-                    &hidden_selection,
-                    query_arguments.pagination,
-                    query_arguments.page_size,
+                    // &hidden_selection,
+                    // query_arguments.pagination,
+                    // query_arguments.page_size,
                 )
             }
             OutputFormat::JSON => {
                 // eprintln!("6.2");
-                if let Ok(json) = groups.as_json() {
-                    Value::test_string(json)
+                // Box::new(JSONPrinter {})
+                // if let Ok(json) = groups.as_json() {
+                //     Value::test_string(json)
+                // } else {
+                //     Value::test_string("No JSON data to show".to_string())
+                // }
+                let object = groups;
+                let mut elements: Vec<serde_json::Value> = vec![];
+
+                if let Some(group) = object.groups.first() {
+                    let titles = &object.titles;
+                    for row in &group.rows {
+                        let mut object = serde_json::Map::new();
+                        for (i, value) in row.values.iter().enumerate() {
+                            object.insert(
+                                titles[i].to_string(),
+                                serde_json::Value::String(value.literal()),
+                            );
+                        }
+                        elements.push(serde_json::Value::Object(object));
+                    }
+                }
+
+                if let Ok(json_str) = serde_json::to_string(&serde_json::Value::Array(elements)) {
+                    // println!("{}", json_str);
+                    Value::test_string(json_str)
                 } else {
                     Value::test_string("No JSON data to show".to_string())
                 }
             }
             OutputFormat::CSV => {
                 // eprintln!("6.3");
-                if let Ok(csv) = groups.as_csv() {
-                    // eprintln!("6.3a");
-                    Value::test_string(csv)
+                // Box::new(CSVPrinter {})
+                // if let Ok(csv) = groups.as_csv() {
+                //     // eprintln!("6.3a");
+                //     Value::test_string(csv)
+                // } else {
+                //     // eprintln!("6.3b");
+                //     Value::test_string("No CSV data to show".to_string())
+                // }
+                let object = groups;
+
+                let mut writer = csv::Writer::from_writer(vec![]);
+                let _ = writer.write_record(object.titles.clone());
+                let row_len = object.titles.len();
+                if let Some(group) = object.groups.first() {
+                    for row in &group.rows {
+                        let mut values_row: Vec<String> = Vec::with_capacity(row_len);
+                        for value in &row.values {
+                            values_row.push(value.literal());
+                        }
+                        let _ = writer.write_record(values_row);
+                    }
+                }
+
+                if let Ok(writer_content) = writer.into_inner() {
+                    // println!("{:?}", String::from_utf8(writer_content));
+                    Value::test_string(String::from_utf8(writer_content).unwrap())
                 } else {
-                    // eprintln!("6.3b");
                     Value::test_string("No CSV data to show".to_string())
                 }
             }
