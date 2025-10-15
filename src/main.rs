@@ -67,7 +67,7 @@ impl SimplePluginCommand for Gitql {
         "Use gitql to query git repositories"
     }
 
-    fn examples(&self) -> Vec<Example> {
+    fn examples(&self) -> Vec<Example<'_>> {
         vec![
             Example {
                 example: "gitql 'show tables'",
