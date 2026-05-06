@@ -1,7 +1,8 @@
+use gitql_ast::types::{
+    boolean::BoolType, date::DateType, integer::IntType, text::TextType, DataType,
+};
 use std::collections::HashMap;
 use std::sync::OnceLock;
-
-use gitql_ast::types::{DataType, boolean::BoolType, date::DateType, integer::IntType, text::TextType};
 
 pub fn tables_fields_types() -> HashMap<&'static str, Box<dyn DataType>> {
     let mut map: HashMap<&'static str, Box<dyn DataType>> = HashMap::new();
@@ -26,14 +27,39 @@ pub fn tables_fields_types() -> HashMap<&'static str, Box<dyn DataType>> {
     map.insert("parents_count", Box::new(IntType));
     map.insert("updated", Box::new(DateType));
     map.insert("repo", Box::new(TextType));
+    map.insert("repo_name", Box::new(TextType));
     map
+}
+
+pub fn tables() -> Vec<&'static str> {
+    let mut tables: Vec<&'static str> = tables_fields_names().keys().copied().collect();
+    tables.sort();
+    tables
+}
+
+pub fn describe_table(table: &str) -> Option<Vec<(&'static str, String)>> {
+    tables_fields_names().get(table).map(|fields| {
+        fields
+            .iter()
+            .map(|field| {
+                let field_type = tables_fields_types()
+                    .get(field)
+                    .map(|data_type| data_type.literal())
+                    .unwrap_or_else(|| "unknown".to_string());
+                (*field, field_type)
+            })
+            .collect()
+    })
 }
 
 pub fn tables_fields_names() -> &'static HashMap<&'static str, Vec<&'static str>> {
     static HASHMAP: OnceLock<HashMap<&'static str, Vec<&'static str>>> = OnceLock::new();
     HASHMAP.get_or_init(|| {
         let mut map = HashMap::new();
-        map.insert("refs", vec!["name", "full_name", "type", "repo"]);
+        map.insert(
+            "refs",
+            vec!["name", "full_name", "type", "repo", "repo_name"],
+        );
         map.insert(
             "commits",
             vec![
@@ -47,6 +73,7 @@ pub fn tables_fields_names() -> &'static HashMap<&'static str, Vec<&'static str>
                 "datetime",
                 "parents_count",
                 "repo",
+                "repo_name",
             ],
         );
         map.insert(
@@ -58,6 +85,7 @@ pub fn tables_fields_names() -> &'static HashMap<&'static str, Vec<&'static str>
                 "is_remote",
                 "updated",
                 "repo",
+                "repo_name",
             ],
         );
         map.insert(
@@ -71,9 +99,26 @@ pub fn tables_fields_names() -> &'static HashMap<&'static str, Vec<&'static str>
                 "files_changed",
                 "datetime",
                 "repo",
+                "repo_name",
             ],
         );
-        map.insert("tags", vec!["name", "repo"]);
+        map.insert("tags", vec!["name", "repo", "repo_name"]);
         map
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn table_definitions_expose_repo_name() {
+        for table in ["refs", "commits", "branches", "diffs", "tags"] {
+            let fields = tables_fields_names().get(table).expect("table exists");
+            assert!(
+                fields.contains(&"repo_name"),
+                "{table} should expose repo_name"
+            );
+        }
+    }
 }

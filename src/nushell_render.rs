@@ -1,77 +1,18 @@
 use chrono::{TimeZone, Utc};
-use gitql_core::object::GitQLObject;
-use gitql_core::object::Row;
-// use gix::config::key;
+use gitql_core::object::{GitQLObject, Row};
 use nu_protocol::{Record, Value as NuValue};
-// use gix::objs::tag;
 
-// enum PaginationInput {
-//     NextPage,
-//     PreviousPage,
-//     Quit,
-// }
-
-pub fn render_objects(
-    groups: &mut GitQLObject,
-    // hidden_selections: &[String],
-    // pagination: bool,
-    // page_size: usize,
-) -> NuValue {
-    // eprintln!(
-    //     "pagi: {pagination:#?} - pg: {page_size:#?} - gp_len: {}",
-    //     groups.len()
-    // );
+pub fn render_objects(groups: &mut GitQLObject) -> NuValue {
     if groups.len() > 1 {
-        groups.flat()
+        groups.flat();
     }
-    // eprintln!("a");
-
-    // eprintln!("CSV: {:#?}\n", groups.as_csv());
-    // eprintln!("JSON: {:#?}\n", groups.as_json());
 
     if groups.is_empty() || groups.groups[0].is_empty() {
-        // eprintln!("a.1");
-
         return NuValue::test_string("No data to display".to_string());
     }
 
     let gql_group = &groups.groups[0];
-    // let gql_group_len = gql_group.len();
-    // eprintln!("{gql_group_len:#?}");
-    // eprintln!("b");
-
     print_group_as_table(&groups.titles, &gql_group.rows)
-    // return;
-    // } else {
-    //     // eprintln!("e");
-
-    //     return Value::test_nothing();
-    // }
-
-    // Setup the pagination mode
-    // let number_of_pages = (gql_group_len as f64 / page_size as f64).ceil() as usize;
-    // let mut current_page = 1;
-
-    // loop {
-    //     let start_index = (current_page - 1) * page_size;
-    //     let end_index = (start_index + page_size).min(gql_group_len);
-
-    //     let current_page_groups = &gql_group.rows[start_index..end_index];
-    //     println!("Page {}/{}", current_page, number_of_pages);
-    //     print_group_as_table(
-    //         &groups.titles,
-    //         table_headers.clone(),
-    //         current_page_groups,
-    //         hidden_selections.len(),
-    //     )
-
-    // let pagination_input = handle_pagination_input(current_page, number_of_pages);
-    // match pagination_input {
-    //     PaginationInput::NextPage => current_page += 1,
-    //     PaginationInput::PreviousPage => current_page -= 1,
-    //     PaginationInput::Quit => break,
-    // }
-    // }
 }
 
 fn print_group_as_table(titles: &[String], rows: &[Row]) -> NuValue {
@@ -111,8 +52,8 @@ fn print_group_as_table(titles: &[String], rows: &[Row]) -> NuValue {
                 }
                 v if v.is_bool() => {
                     if let Some(boolean) = v.as_bool() {
-                    rec.insert(column_name, NuValue::test_bool(boolean));
-                }
+                        rec.insert(column_name, NuValue::test_bool(boolean));
+                    }
                 }
                 v if v.is_date() => {
                     if let Some(date) = v.as_date() {
@@ -160,115 +101,6 @@ fn print_group_as_table(titles: &[String], rows: &[Row]) -> NuValue {
 
                 _ => {}
             }
-            // gitql_core::value::Value::Integer(i) => {
-            //     rec.insert(column_name, Value::test_int(*i));
-            // }
-            // gitql_core::value::Value::Float(f) => {
-            //     rec.insert(column_name, Value::test_float(*f));
-            // }
-            // gitql_core::value::Value::Text(t) => {
-            //     rec.insert(column_name, Value::test_string(t.to_string()));
-            // }
-            // gitql_core::value::Value::Boolean(b) => {
-            //     rec.insert(column_name, Value::test_bool(*b));
-            // }
-            // gitql_core::value::Value::DateTime(dt) => {
-            //     rec.insert(column_name, Value::test_string(dt.to_string()));
-            // }
-            // gitql_core::value::Value::Date(dt) => {
-            //     rec.insert(column_name, Value::test_string(dt.to_string()));
-            // }
-            // gitql_core::value::Value::Time(t) => {
-            //     rec.insert(column_name, Value::test_string(t.to_string()));
-            // }
-            // // gitql_core::value::Value::Array(a, b) => {
-            // //     rec.insert(
-            // //         column_name,
-            // //         Value::test_list(
-            // //             b.iter()
-            // //                 .map(|v| Value::test_string(v.to_string()))
-            // //                 .collect(),
-            // //         ),
-            // //     );
-            // // }
-            // gitql_core::value::Value::Array(a, b) => {
-            //     rec.insert(
-            //         column_name,
-            //         match a {
-            //             gitql_core::types::DataType::Text => Value::test_list(
-            //                 b.iter()
-            //                     .map(|v| Value::test_string(v.to_string()))
-            //                     .collect(),
-            //             ),
-            //             gitql_core::types::DataType::Integer => Value::test_list(
-            //                 b.iter().map(|v| Value::test_int(v.as_int())).collect(),
-            //             ),
-            //             gitql_core::types::DataType::Float => Value::test_list(
-            //                 b.iter().map(|v| Value::test_float(v.as_float())).collect(),
-            //             ),
-            //             gitql_core::types::DataType::Boolean => Value::test_list(
-            //                 b.iter().map(|v| Value::test_bool(v.as_bool())).collect(),
-            //             ),
-            //             gitql_core::types::DataType::Date => Value::test_list(
-            //                 b.iter()
-            //                     .map(|v| Value::test_string(v.to_string()))
-            //                     .collect(),
-            //             ),
-            //             gitql_core::types::DataType::Time => Value::test_list(
-            //                 b.iter()
-            //                     .map(|v| Value::test_string(v.to_string()))
-            //                     .collect(),
-            //             ),
-            //             gitql_core::types::DataType::DateTime => Value::test_list(
-            //                 b.iter()
-            //                     .map(|v| Value::test_string(v.to_string()))
-            //                     .collect(),
-            //             ),
-            //             gitql_core::types::DataType::Array(_a) => Value::test_list(
-            //                 b.iter()
-            //                     .map(|v| Value::test_string(v.to_string()))
-            //                     .collect(),
-            //             ),
-            //             gitql_core::types::DataType::Range(_r) => Value::test_list(
-            //                 b.iter()
-            //                     .map(|v| Value::test_string(v.to_string()))
-            //                     .collect(),
-            //             ),
-            //             gitql_core::types::DataType::Variant(_vv) => Value::test_list(
-            //                 b.iter()
-            //                     .map(|v| Value::test_string(v.to_string()))
-            //                     .collect(),
-            //             ),
-            //             gitql_core::types::DataType::Optional(_o) => Value::test_list(
-            //                 b.iter()
-            //                     .map(|v| Value::test_string(v.to_string()))
-            //                     .collect(),
-            //             ),
-            //             gitql_core::types::DataType::Varargs(_v) => Value::test_list(
-            //                 b.iter()
-            //                     .map(|v| Value::test_string(v.to_string()))
-            //                     .collect(),
-            //             ),
-            //             gitql_core::types::DataType::Dynamic(_d) => Value::test_list(
-            //                 b.iter()
-            //                     .map(|v| Value::test_string(v.to_string()))
-            //                     .collect(),
-            //             ),
-            //             gitql_core::types::DataType::Undefined => todo!(),
-            //             gitql_core::types::DataType::Any => todo!(),
-            //             gitql_core::types::DataType::Null => todo!(),
-            //         }, // Value::test_list(
-            //            //     b.iter()
-            //            //         .map(|v| Value::test_string(v.to_string()))
-            //            //         .collect(),
-            //            // ),
-            //     );
-            // }
-
-            // gitql_core::value::Value::Range(a, b, c) => todo!(),
-            // gitql_core::value::Value::Null => todo!(),
-            // }
-            // rec.insert(column_name, Value::test_string(column_value));
         }
         table_row_val.push(NuValue::test_record(rec));
     }
@@ -276,47 +108,62 @@ fn print_group_as_table(titles: &[String], rows: &[Row]) -> NuValue {
     NuValue::test_list(table_row_val)
 }
 
-// fn handle_pagination_input(current_page: usize, number_of_pages: usize) -> PaginationInput {
-//     loop {
-//         if current_page < 2 {
-//             println!("Enter 'n' for next page, or 'q' to quit:");
-//         } else if current_page == number_of_pages {
-//             println!("'p' for previous page, or 'q' to quit:");
-//         } else {
-//             println!("Enter 'n' for next page, 'p' for previous page, or 'q' to quit:");
-//         }
+pub fn render_groups_to_json(groups: &mut GitQLObject) -> Option<String> {
+    let mut elements: Vec<serde_json::Value> = vec![];
 
-//         std::io::Write::flush(&mut std::io::stdout()).expect("flush failed!");
+    if let Some(group) = groups.groups.first() {
+        let titles = &groups.titles;
+        for row in &group.rows {
+            let mut object = serde_json::Map::new();
+            for (i, value) in row.values.iter().enumerate() {
+                object.insert(
+                    titles[i].clone(),
+                    serde_json::Value::String(value.literal()),
+                );
+            }
+            elements.push(serde_json::Value::Object(object));
+        }
+    }
 
-//         let mut line = String::new();
-//         std::io::stdin()
-//             .read_line(&mut line)
-//             .expect("Failed to read input");
+    serde_json::to_string(&serde_json::Value::Array(elements)).ok()
+}
 
-//         let input = line.trim();
-//         if input == "q" || input == "n" || input == "p" {
-//             match input {
-//                 "n" => {
-//                     if current_page < number_of_pages {
-//                         return PaginationInput::NextPage;
-//                     } else {
-//                         println!("Already on the last page");
-//                         continue;
-//                     }
-//                 }
-//                 "p" => {
-//                     if current_page > 1 {
-//                         return PaginationInput::PreviousPage;
-//                     } else {
-//                         println!("Already on the first page");
-//                         continue;
-//                     }
-//                 }
-//                 "q" => return PaginationInput::Quit,
-//                 _ => unreachable!(),
-//             }
-//         }
+pub fn render_groups_to_csv(groups: &mut GitQLObject) -> Option<String> {
+    let mut writer = csv::Writer::from_writer(vec![]);
+    let _ = writer.write_record(groups.titles.clone());
+    let row_len = groups.titles.len();
+    if let Some(group) = groups.groups.first() {
+        for row in &group.rows {
+            let mut values_row: Vec<String> = Vec::with_capacity(row_len);
+            for value in &row.values {
+                values_row.push(value.literal());
+            }
+            let _ = writer.write_record(values_row);
+        }
+    }
 
-//         println!("Invalid input");
-//     }
-// }
+    writer
+        .into_inner()
+        .ok()
+        .and_then(|writer_content| String::from_utf8(writer_content).ok())
+}
+
+pub fn render_groups_to_yaml(groups: &mut GitQLObject) -> Option<String> {
+    let mut elements: Vec<serde_yaml::Value> = Vec::new();
+
+    if let Some(group) = groups.groups.first() {
+        let titles = &groups.titles;
+        for row in &group.rows {
+            let mut object = serde_yaml::Mapping::new();
+            for (i, value) in row.values.iter().enumerate() {
+                object.insert(
+                    serde_yaml::Value::String(titles[i].clone()),
+                    serde_yaml::Value::String(value.literal()),
+                );
+            }
+            elements.push(serde_yaml::Value::Mapping(object));
+        }
+    }
+
+    serde_yaml::to_string(&elements).ok()
+}
