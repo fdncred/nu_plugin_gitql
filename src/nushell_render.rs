@@ -35,29 +35,12 @@ pub fn render_objects(
         return NuValue::test_string("No data to display".to_string());
     }
 
-    let gql_group = groups.groups.first().unwrap();
+    let gql_group = &groups.groups[0];
     // let gql_group_len = gql_group.len();
     // eprintln!("{gql_group_len:#?}");
     // eprintln!("b");
 
-    // Setup table headers
-    // let header_color = comfy_table::Color::Green;
-    let mut table_headers = vec![];
-    for key in &groups.titles {
-        // table_headers.push(comfy_table::Cell::new(key).fg(header_color));
-        table_headers.push(key);
-    }
-    // eprintln!("c");
-
-    // Print all data without pagination
-    // if !pagination || page_size >= gql_group_len {
-    // eprintln!("d");
-
-    print_group_as_table(
-        &groups.titles,
-        // table_headers,
-        &gql_group.rows,
-    )
+    print_group_as_table(&groups.titles, &gql_group.rows)
     // return;
     // } else {
     //     // eprintln!("e");
@@ -91,43 +74,12 @@ pub fn render_objects(
     // }
 }
 
-fn print_group_as_table(
-    titles: &[String],
-    // table_headers: Vec<comfy_table::Cell>,
-    // table_headers: Vec<&String>,
-    rows: &[Row],
-) -> NuValue {
-    // eprintln!("{table_headers:#?}");
-    // eprintln!("{titles:#?}");
+fn print_group_as_table(titles: &[String], rows: &[Row]) -> NuValue {
+    let mut table_row_val: Vec<NuValue> = Vec::with_capacity(rows.len());
 
-    // let mut table = comfy_table::Table::new();
-    let mut table = vec![];
-    // let mut table_of_values = vec![];
-
-    // // Setup table style
-    // table.load_preset(comfy_table::presets::UTF8_FULL);
-    // table.apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS);
-    // table.set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
-
-    // table.set_header(table_headers);
-
-    let titles_len = titles.len();
-    let mut table_row_val: Vec<NuValue> = vec![];
-    // Add rows to the table
     for row in rows {
-        // let mut table_row: Vec<comfy_table::Cell> = vec![];
-        let mut table_row: Vec<String> = vec![];
-        // let mut table_row_val: Vec<Value> = vec![];
-        for index in 0..titles_len {
-            let value = row.values.get(index).unwrap();
-            // table_row.push(comfy_table::Cell::new(value.to_string()));
-            table_row.push(value.to_string());
-        }
-
         let mut rec = Record::new();
-        for index in 0..titles_len {
-            let column_name = &titles[index];
-            let column_value = row.values.get(index).unwrap();
+        for (column_name, column_value) in titles.iter().zip(&row.values) {
             // eprintln!("{column_name:#?} - {:#?}", column_value.as_text());
             // let dt = column_value.data_type();
             // if let Some(int_val) = column_value.as_any().downcast_ref::<IntValue>() {
@@ -147,53 +99,63 @@ fn print_group_as_table(
             // }
             match column_value {
                 v if v.is_array() => {
-                    let array_val = v.as_array().unwrap();
-                    let array_str = array_val
-                        // .values
-                        .iter()
-                        .map(|v| v.literal())
-                        .collect::<Vec<_>>()
-                        .join(",");
-                    rec.insert(column_name, NuValue::test_string(array_str));
+                    if let Some(array_val) = v.as_array() {
+                        let array_str = array_val
+                            // .values
+                            .iter()
+                            .map(|v| v.literal())
+                            .collect::<Vec<_>>()
+                            .join(",");
+                        rec.insert(column_name, NuValue::test_string(array_str));
+                    }
                 }
                 v if v.is_bool() => {
-                    rec.insert(column_name, NuValue::test_bool(v.as_bool().unwrap()));
+                    if let Some(boolean) = v.as_bool() {
+                    rec.insert(column_name, NuValue::test_bool(boolean));
+                }
                 }
                 v if v.is_date() => {
-                    rec.insert(
-                        column_name,
-                        NuValue::test_string(v.as_date().unwrap().to_string()),
-                    );
+                    if let Some(date) = v.as_date() {
+                        rec.insert(column_name, NuValue::test_string(date.to_string()));
+                    }
                 }
                 v if v.is_date_time() => {
-                    let timestamp = v.as_date_time().unwrap() * 1_000_000_000;
-                    let dt = Utc.timestamp_nanos(timestamp);
-                    rec.insert(column_name, NuValue::test_date(dt.into()));
+                    if let Some(date_time) = v.as_date_time() {
+                        let timestamp = date_time * 1_000_000_000;
+                        let dt = Utc.timestamp_nanos(timestamp);
+                        rec.insert(column_name, NuValue::test_date(dt.into()));
+                    }
                 }
                 v if v.is_float() => {
-                    rec.insert(column_name, NuValue::test_float(v.as_float().unwrap()));
+                    if let Some(float) = v.as_float() {
+                        rec.insert(column_name, NuValue::test_float(float));
+                    }
                 }
                 v if v.as_range().is_some() => {
-                    rec.insert(
-                        column_name,
-                        NuValue::test_string(format!(
-                            "{}..{}",
-                            v.as_range().unwrap().0,
-                            v.as_range().unwrap().1
-                        )),
-                    );
+                    if let Some(range) = v.as_range() {
+                        rec.insert(
+                            column_name,
+                            NuValue::test_string(format!("{}..{}", range.0, range.1)),
+                        );
+                    }
                 }
                 v if v.is_null() => {
                     rec.insert(column_name, NuValue::test_nothing());
                 }
                 v if v.is_int() => {
-                    rec.insert(column_name, NuValue::test_int(v.as_int().unwrap()));
+                    if let Some(int_value) = v.as_int() {
+                        rec.insert(column_name, NuValue::test_int(int_value));
+                    }
                 }
                 v if v.is_text() => {
-                    rec.insert(column_name, NuValue::test_string(v.as_text().unwrap()));
+                    if let Some(text) = v.as_text() {
+                        rec.insert(column_name, NuValue::test_string(text));
+                    }
                 }
                 v if v.is_time() => {
-                    rec.insert(column_name, NuValue::test_string(v.as_time().unwrap()));
+                    if let Some(time) = v.as_time() {
+                        rec.insert(column_name, NuValue::test_string(time));
+                    }
                 }
 
                 _ => {}
@@ -309,15 +271,8 @@ fn print_group_as_table(
             // rec.insert(column_name, Value::test_string(column_value));
         }
         table_row_val.push(NuValue::test_record(rec));
-
-        // table.add_row(table_row);
-        table.push(table_row);
-        // table_of_values.push(Value::test_list(table_row_val))
     }
 
-    // Print table
-    // eprintln!("{table:#?}");
-    // Value::test_list(table_of_values)
     NuValue::test_list(table_row_val)
 }
 

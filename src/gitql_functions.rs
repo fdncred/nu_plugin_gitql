@@ -1,15 +1,13 @@
 use gitql_ast::types::text::TextType;
-use gitql_core::signature::Function;
-use gitql_core::signature::Signature;
-use gitql_core::values::base::Value;
+use gitql_core::signature::{Signature, StandardFunction};
 use gitql_core::values::text::TextValue;
-use gitql_std::function::standard_function_signatures;
-use gitql_std::function::standard_functions;
+use gitql_core::values::Value;
+use gitql_std::standard::{standard_function_signatures, standard_functions};
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub fn gitql_std_functions() -> &'static HashMap<&'static str, Function> {
-    static HASHMAP: OnceLock<HashMap<&'static str, Function>> = OnceLock::new();
+pub fn gitql_std_functions() -> &'static HashMap<&'static str, StandardFunction> {
+    static HASHMAP: OnceLock<HashMap<&'static str, StandardFunction>> = OnceLock::new();
     HASHMAP.get_or_init(|| {
         let mut map = standard_functions().to_owned();
         map.insert("commit_conventional", commit_conventional);
@@ -30,7 +28,10 @@ pub fn gitql_std_signatures() -> HashMap<&'static str, Signature> {
 }
 
 fn commit_conventional(values: &[Box<dyn Value>]) -> Box<dyn Value> {
-    let text = values[0].as_text().unwrap();
+    let text = values
+        .first()
+        .and_then(|value| value.as_text())
+        .unwrap_or_default();
     let split: Vec<&str> = text.split(':').collect();
     let conventional = if split.len() == 1 { "" } else { split[0] };
     Box::new(TextValue {

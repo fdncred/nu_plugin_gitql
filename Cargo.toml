@@ -1,6 +1,6 @@
 [package]
 name = "nu_plugin_gitql"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Darren Schroeder <343840+fdncred@users.noreply.github.com>"]
 edition = "2021"
 description = "a nushell plugin called gitql"
@@ -13,16 +13,16 @@ nu-plugin =  "0.112.2"
 nu-protocol = "0.112.2"
 nu-path = "0.112.2"
 
-chrono = "0.4.42"
-csv = "1.3.1"
-gitql-ast = "0.28.0"
-gitql-cli = "0.31.0"
-gitql-core = "0.8.0"
-gitql-engine = "0.31.0"
-gitql-parser = "0.30.0"
-gitql-std = "0.8.0"
-gix = "0.67.0"
-serde_json = "1.0.132"
+chrono = "0.4.44"
+csv = "1.4.0"
+gitql-ast = "0.39.0"
+gitql-cli = "0.43.0"
+gitql-core = "0.20.0"
+gitql-engine = "0.43.0"
+gitql-parser = "0.42.0"
+gitql-std = "0.20.0"
+gix = "0.83.0"
+serde_json = "1.0.149"
 
 # for local development, you can use a path dependency
 # nu-plugin = { version = "0.99.0", path = "../nushell/crates/nu-plugin" }
@@ -32,6 +32,10 @@ serde_json = "1.0.132"
 [dev-dependencies]
 nu-plugin-test-support =  "0.112.2"
 # nu-plugin-test-support = { path = "../nushell/crates/nu-plugin-test-support" }
+
+[lints.clippy]
+unwrap_used = "deny"
+unchecked_time_subtraction = "warn"
 
 [profile.release]
 opt-level = "s"     # Optimize for size

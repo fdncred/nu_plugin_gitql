@@ -3,17 +3,10 @@ use crate::gitql_schema::{tables_fields_names, tables_fields_types};
 // use gitql_cli::printer::json_printer::JSONPrinter;
 // use crate::nushell_render::render_objects;
 // use nu_path::expand_path_with;
-use nu_plugin::{serve_plugin, MsgPackSerializer, Plugin, PluginCommand};
-use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
+use nu_plugin::{EngineInterface, EvaluatedCall, MsgPackSerializer, Plugin, PluginCommand, SimplePluginCommand, serve_plugin};
 use nu_protocol::{Category, Example, LabeledError, Signature, SyntaxShape, Value};
 // use atty::Stream;
-use gitql_cli::{
-    // arguments,
-    arguments::{Arguments, OutputFormat},
-    diagnostic_reporter,
-    diagnostic_reporter::DiagnosticReporter,
-    // render,
-};
+use gitql_cli::{arguments::Arguments, diagnostic_reporter, diagnostic_reporter::DiagnosticReporter, printer::OutputFormatKind};
 use gitql_core::{environment::Environment, schema::Schema};
 use gitql_data_provider::GitDataProvider;
 use gitql_engine::{data_provider::DataProvider, engine, engine::EvaluationResult::SelectedGroups};
@@ -105,7 +98,7 @@ impl SimplePluginCommand for Gitql {
 
         let query_arguments = Arguments {
             repos: vec![curdir.to_string()],
-            output_format: OutputFormat::Render,
+            output_format: OutputFormatKind::Table,
             pagination: false,
             page_size: 10,
             analysis: false,
@@ -113,16 +106,13 @@ impl SimplePluginCommand for Gitql {
         };
 
         let mut reporter = diagnostic_reporter::DiagnosticReporter::default();
-        let git_repos_result = validate_git_repositories(&query_arguments.repos);
-        if git_repos_result.is_err() {
-            reporter.report_diagnostic(
-                &query_string,
-                Diagnostic::error(git_repos_result.err().unwrap().as_str()),
-            );
-            return Err(LabeledError::new("Invalid repositories paths"));
-        }
-
-        let repos = git_repos_result.ok().unwrap();
+        let repos = match validate_git_repositories(&query_arguments.repos) {
+            Ok(repos) => repos,
+            Err(error) => {
+                reporter.report_diagnostic(&query_string, Diagnostic::error(error.as_str()));
+                return Err(LabeledError::new("Invalid repositories paths"));
+            }
+        };
         let schema = Schema {
             tables_fields_names: tables_fields_names().to_owned(),
             tables_fields_types: tables_fields_types().to_owned(),
@@ -173,57 +163,48 @@ fn execute_gitql_query(
     reporter: &mut DiagnosticReporter,
 ) -> Value {
     let front_start = std::time::Instant::now();
-    let tokenizer_result = tokenizer::tokenize(query.clone());
-    // eprintln!("1");
-    if tokenizer_result.is_err() {
-        let diagnostic = tokenizer_result.err().unwrap();
-        reporter.report_diagnostic(&query, *diagnostic);
-        return Value::test_string("tokenizer_result error".to_string());
-    }
-
-    // eprintln!("2");
-    let tokens = tokenizer_result.ok().unwrap();
+    let tokens = match tokenizer::Tokenizer::tokenize(&query) {
+        Ok(tokens) => tokens,
+        Err(diagnostic) => {
+            reporter.report_diagnostic(&query, *diagnostic);
+            return Value::test_string("tokenizer_result error".to_string());
+        }
+    };
     if tokens.is_empty() {
         return Value::test_string("No tokens to parse".to_string());
     }
 
     // eprintln!("3");
-    let parser_result = parser::parse_gql(tokens, env);
-    if parser_result.is_err() {
-        let diagnostic = parser_result.err().unwrap();
-        reporter.report_diagnostic(&query, *diagnostic);
-        return Value::test_string("parser_result error".to_string());
-    }
-
-    let query_node = parser_result.ok().unwrap();
+    let query_node = match parser::parse_gql(tokens, env) {
+        Ok(query_node) => query_node,
+        Err(diagnostic) => {
+            reporter.report_diagnostic(&query, *diagnostic);
+            return Value::test_string("parser_result error".to_string());
+        }
+    };
     let front_duration = front_start.elapsed();
 
     let engine_start = std::time::Instant::now();
     let provider: Box<dyn DataProvider> = Box::new(GitDataProvider::new(repos.to_vec()));
-    let evaluation_result = engine::evaluate(env, &provider, query_node);
-
-    // eprintln!("4");
-
-    // Report Runtime exceptions if they exists
-    if evaluation_result.is_err() {
-        reporter.report_diagnostic(
-            &query,
-            Diagnostic::exception(&evaluation_result.err().unwrap()),
-        );
-        return Value::test_string("evaluation_result error".to_string());
-    }
+    let engine_results = match engine::evaluate(env, &provider, query_node) {
+        Ok(results) => results,
+        Err(error) => {
+            reporter.report_diagnostic(&query, Diagnostic::exception(&error));
+            return Value::test_string("evaluation_result error".to_string());
+        }
+    };
 
     // eprintln!("5");
 
     // Render the result only if they are selected groups not any other statement
-    let engine_result = evaluation_result.ok().unwrap();
-    let output: Value = if let SelectedGroups(mut groups) = engine_result {
+    let engine_result = engine_results.into_iter().last();
+    let output: Value = if let Some(SelectedGroups(mut groups)) = engine_result {
         // eprintln!("6");
         // eprintln!("{:#?} -> {:#?}", groups.titles, hidden_selection);
         // let hidden_selection: &[String] = &[];
 
         match query_arguments.output_format {
-            OutputFormat::Render => {
+            OutputFormatKind::Table => {
                 // render::render_objects(
                 //     &mut groups,
                 //     &hidden_selection,
@@ -239,7 +220,7 @@ fn execute_gitql_query(
                     // query_arguments.page_size,
                 )
             }
-            OutputFormat::JSON => {
+            OutputFormatKind::JSON => {
                 // eprintln!("6.2");
                 // Box::new(JSONPrinter {})
                 // if let Ok(json) = groups.as_json() {
@@ -256,7 +237,7 @@ fn execute_gitql_query(
                         let mut object = serde_json::Map::new();
                         for (i, value) in row.values.iter().enumerate() {
                             object.insert(
-                                titles[i].to_string(),
+                                titles[i].clone(),
                                 serde_json::Value::String(value.literal()),
                             );
                         }
@@ -271,7 +252,10 @@ fn execute_gitql_query(
                     Value::test_string("No JSON data to show".to_string())
                 }
             }
-            OutputFormat::CSV => {
+            OutputFormatKind::YAML => Value::test_string(
+                "YAML output format is not supported by the gitql plugin".to_string(),
+            ),
+            OutputFormatKind::CSV => {
                 // eprintln!("6.3");
                 // Box::new(CSVPrinter {})
                 // if let Ok(csv) = groups.as_csv() {
@@ -297,8 +281,11 @@ fn execute_gitql_query(
                 }
 
                 if let Ok(writer_content) = writer.into_inner() {
-                    // println!("{:?}", String::from_utf8(writer_content));
-                    Value::test_string(String::from_utf8(writer_content).unwrap())
+                    if let Ok(csv_str) = String::from_utf8(writer_content) {
+                        Value::test_string(csv_str)
+                    } else {
+                        Value::test_string("No CSV data to show".to_string())
+                    }
                 } else {
                     Value::test_string("No CSV data to show".to_string())
                 }
@@ -324,14 +311,9 @@ fn execute_gitql_query(
     output
 }
 
-fn validate_git_repositories(repositories: &Vec<String>) -> Result<Vec<gix::Repository>, String> {
-    let mut git_repositories: Vec<gix::Repository> = vec![];
-    for repository in repositories {
-        let git_repository = gix::open(repository);
-        if git_repository.is_err() {
-            return Err(git_repository.err().unwrap().to_string());
-        }
-        git_repositories.push(git_repository.ok().unwrap());
-    }
-    Ok(git_repositories)
+fn validate_git_repositories(repositories: &[String]) -> Result<Vec<gix::Repository>, String> {
+    repositories
+        .iter()
+        .map(|repository| gix::open(repository).map_err(|err| err.to_string()))
+        .collect()
 }

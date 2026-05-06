@@ -1,11 +1,7 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use gitql_ast::types::base::DataType;
-use gitql_ast::types::boolean::BoolType;
-use gitql_ast::types::date::DateType;
-use gitql_ast::types::integer::IntType;
-use gitql_ast::types::text::TextType;
+use gitql_ast::types::{DataType, boolean::BoolType, date::DateType, integer::IntType, text::TextType};
 
 pub fn tables_fields_types() -> HashMap<&'static str, Box<dyn DataType>> {
     let mut map: HashMap<&'static str, Box<dyn DataType>> = HashMap::new();
