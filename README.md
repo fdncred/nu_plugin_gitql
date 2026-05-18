@@ -1,6 +1,6 @@
 # nu_plugin_gitql
 
-THIS REPO IS NO ENTIRELY IN the [nu_plugin_query_git](https://github.com/fdncred/nu_plugin_query_git) PLUGIN. THEREFORE IT IS NOT NEEDED ANY LONGER.
+THIS REPO IS NOW ENTIRELY CONTAINED IN THE [nu_plugin_query_git](https://github.com/fdncred/nu_plugin_query_git) PLUGIN. THEREFORE IT IS NOT NEEDED ANY LONGER.
 
 This is a [Nushell](https://nushell.sh/) plugin called "query git".
 
